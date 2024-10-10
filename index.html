@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XGBoost Model Input</title>
+</head>
+<body>
+    <h1>XGBoost Model Input</h1>
+    <form id="xgboost-form">
+        <h2>Numerical Features</h2>
+        <label for="gameID">Game ID:</label>
+        <input type="number" id="gameID" name="gameID" required><br><br>
+
+        <label for="playerDay">Player Day:</label>
+        <input type="number" id="playerDay" name="playerDay" required><br><br>
+
+        <label for="playerGame">Player Game:</label>
+        <input type="number" id="playerGame" name="playerGame" required><br><br>
+
+        <label for="temperature">Temperature:</label>
+        <input type="number" id="temperature" name="temperature" required><br><br>
+
+        <h2>One-Hot Encoded Features</h2>
+
+        <label>Roster Position:</label><br>
+        <select id="rosterPosition" name="rosterPosition">
+            <option value="Defensive Lineman">Defensive Lineman</option>
+            <option value="Kicker">Kicker</option>
+            <option value="Linebacker">Linebacker</option>
+            <option value="Offensive Lineman">Offensive Lineman</option>
+            <option value="Quarterback">Quarterback</option>
+            <option value="Running Back">Running Back</option>
+            <option value="Safety">Safety</option>
+            <option value="Tight End">Tight End</option>
+            <option value="Wide Receiver">Wide Receiver</option>
+        </select><br><br>
+
+        <label>Stadium Type:</label><br>
+        <select id="stadiumType" name="stadiumType">
+            <option value="Indoor">Indoor</option>
+            <option value="Outdoor">Outdoor</option>
+            <option value="Retractable Roof">Retractable Roof</option>
+        </select><br><br>
+
+        <label for="fieldType">Field Type (Synthetic = 1, Natural = 0):</label>
+        <input type="number" id="fieldType" name="fieldType" min="0" max="1" required><br><br>
+
+        <label>Weather:</label><br>
+        <select id="weather" name="weather">
+            <option value="Cloudy">Cloudy</option>
+            <option value="Indoor">Indoor</option>
+            <option value="Rain">Rain</option>
+            <option value="Snow">Snow</option>
+        </select><br><br>
+
+        <label>Play Type:</label><br>
+        <select id="playType" name="playType">
+            <option value="Extra Point">Extra Point</option>
+            <option value="Field Goal">Field Goal</option>
+            <option value="Kickoff">Kickoff</option>
+            <option value="Kickoff Not Returned">Kickoff Not Returned</option>
+            <option value="Kickoff Returned">Kickoff Returned</option>
+            <option value="Pass">Pass</option>
+            <option value="Punt">Punt</option>
+            <option value="Punt Not Returned">Punt Not Returned</option>
+            <option value="Punt Returned">Punt Returned</option>
+            <option value="Rush">Rush</option>
+        </select><br><br>
+
+        <label>Position:</label><br>
+        <select id="position" name="position">
+            <option value="CB">CB</option>
+            <option value="DB">DB</option>
+            <option value="DE">DE</option>
+            <option value="DT">DT</option>
+            <option value="FS">FS</option>
+            <option value="G">G</option>
+            <option value="HB">HB</option>
+            <option value="ILB">ILB</option>
+            <option value="K">K</option>
+            <option value="LB">LB</option>
+            <option value="MLB">MLB</option>
+            <option value="NT">NT</option>
+            <option value="OLB">OLB</option>
+            <option value="P">P</option>
+            <option value="QB">QB</option>
+            <option value="RB">RB</option>
+            <option value="S">S</option>
+            <option value="SS">SS</option>
+            <option value="T">T</option>
+            <option value="TE">TE</option>
+            <option value="WR">WR</option>
+        </select><br><br>
+
+        <label>Position Group:</label><br>
+        <select id="positionGroup" name="positionGroup">
+            <option value="DL">DL</option>
+            <option value="LB">LB</option>
+            <option value="OL">OL</option>
+            <option value="QB">QB</option>
+            <option value="RB">RB</option>
+            <option value="SPEC">SPEC</option>
+            <option value="TE">TE</option>
+            <option value="WR">WR</option>
+        </select><br><br>
+
+        <button type="button" onclick="submitForm()">Submit</button>
+    </form>
+
+    <script>
+        function submitForm() {
+            // Gather form data
+            const data = {
+                input: [
+                    parseInt(document.getElementById('gameID').value),
+                    parseInt(document.getElementById('playerDay').value),
+                    parseInt(document.getElementById('playerGame').value),
+                    parseInt(document.getElementById('temperature').value),
+                    // One-hot encoding for RosterPosition (convert selected position into one-hot)
+                    ...oneHotRosterPosition(document.getElementById('rosterPosition').value),
+                    // One-hot encoding for StadiumType
+                    ...oneHotStadiumType(document.getElementById('stadiumType').value),
+                    // FieldType
+                    parseInt(document.getElementById('fieldType').value),
+                    // One-hot encoding for Weather
+                    ...oneHotWeather(document.getElementById('weather').value),
+                    // One-hot encoding for PlayType
+                    ...oneHotPlayType(document.getElementById('playType').value),
+                    // One-hot encoding for Position
+                    ...oneHotPosition(document.getElementById('position').value),
+                    // One-hot encoding for PositionGroup
+                    ...oneHotPositionGroup(document.getElementById('positionGroup').value)
+                ]
+            };
+
+            // Send the data to the Flask API using fetch
+            fetch('http://127.0.0.1:5000/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Prediction: ' + data.prediction);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+
+        // Helper functions to convert selections into one-hot encodings
+
+        function oneHotRosterPosition(value) {
+            const positions = ["Defensive Lineman", "Kicker", "Linebacker", "Offensive Lineman", "Quarterback", "Running Back", "Safety", "Tight End", "Wide Receiver"];
+            return oneHotEncode(positions, value);
+        }
+
+        function oneHotStadiumType(value) {
+            const stadiumTypes = ["Indoor", "Outdoor", "Retractable Roof"];
+            return oneHotEncode(stadiumTypes, value);
+        }
+
+        function oneHotWeather(value) {
+            const weathers = ["Cloudy", "Indoor", "Rain", "Snow"];
+            return oneHotEncode(weathers, value);
+        }
+
+        function oneHotPlayType(value) {
+            const playTypes = ["Extra Point", "Field Goal", "Kickoff", "Kickoff Not Returned", "Kickoff Returned", "Pass", "Punt", "Punt Not Returned", "Punt Returned", "Rush"];
+            return oneHotEncode(playTypes, value);
+        }
+
+        function oneHotPosition(value) {
+            const positions = ["CB", "DB", "DE", "DT", "FS", "G", "HB", "ILB", "K", "LB", "MLB", "NT", "OLB", "P", "QB", "RB", "S", "SS", "T", "TE", "WR"];
+            return oneHotEncode(positions, value);
+        }
+
+        function oneHotPositionGroup(value) {
+            const positionGroups = ["DL", "LB", "OL", "QB", "RB", "SPEC", "TE", "WR"];
+            return oneHotEncode(positionGroups, value);
+        }
+
+        function oneHotEncode(arr, value) {
+            return arr.map(item => item === value ? 1 : 0);
+        }
+    </script>
+</body>
+</html>
